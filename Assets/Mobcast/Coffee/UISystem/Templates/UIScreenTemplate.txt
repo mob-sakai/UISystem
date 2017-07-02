@@ -1,0 +1,73 @@
+﻿using UnityEngine;
+using UnityEngine.UI;
+using System.Collections;
+using System.Collections.Generic;
+using Mobcast.Coffee.UI;
+
+/// <summary>
+/// #SCRIPTNAME#
+/// </summary>
+public class #SCRIPTNAME# : UIScreen
+{
+	/// <summary>
+	/// Implement this property to indicate whether UI is suspendable.
+	/// </summary>
+	public override bool isSuspendable { get { return base.isSuspendable; } }
+
+	/// <summary>
+	/// Implement this property to indicate whether UI is cacheable.
+	/// </summary>
+	public override bool isCacheable { get { return base.isCacheable; } }
+
+	/// <summary>
+	/// Argument.
+	/// </summary>
+	public class Argument : UIArgument
+	{
+	}
+
+	/// <summary>
+	/// This function is called when the UI starts showing.
+	/// Implement this function to show UI with animation.
+	/// </summary>
+	public override IEnumerator OnMoveIn()
+	{
+		yield return base.OnMoveIn();
+	}
+
+	/// <summary>
+	/// This function is called when the UI starts hiding.
+	/// Implement this function to hide UI with animation.
+	/// </summary>
+	public override IEnumerator OnMoveOut()
+	{
+		yield return base.OnMoveOut();
+	}
+
+	/// <summary>
+	/// This function is called when the UI instance is being loaded, and only once during the lifetime of the instance.
+	/// Implement this function to initialize UI.
+	/// </summary>
+	public override IEnumerator OnInitialize()
+	{
+		yield return base.OnInitialize();
+	}
+
+	/// <summary>
+	/// This function is called before showing UI.
+	/// Implement this function to load resources and instantiate other prefabs.
+	/// </summary>
+	public override IEnumerator OnLoadResource()
+	{
+		yield return base.OnLoadResource();
+	}
+
+	/// <summary>
+	/// This function is called after hiding UI.
+	/// Implement this function to unload resources and decrease memory usage.
+	/// </summary>
+	public override IEnumerator OnUnloadResource()
+	{
+		yield return base.OnUnloadResource();
+	}
+}
