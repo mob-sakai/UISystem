@@ -17,7 +17,7 @@ namespace Mobcast.Coffee.UI
 		/// <summary>
 		/// Implement this property to indicate whether UI is cacheable.
 		/// </summary>
-		public override bool isCacheable { get { return false; } }
+		public override bool isPoolable { get { return false; } }
 
 		/// <summary>
 		/// Implement this property to indicate whether UI is suspendable.

@@ -122,7 +122,7 @@ namespace Mobcast.Coffee.UI
 		/// This function is called when the UI starts showing.
 		/// Implement this function to show UI with animation.
 		/// </summary>
-		public override IEnumerator OnMoveIn()
+		public override IEnumerator OnShow()
 		{
 			yield break;
 		}
@@ -131,7 +131,7 @@ namespace Mobcast.Coffee.UI
 		/// This function is called when the UI starts hiding.
 		/// Implement this function to hide UI with animation.
 		/// </summary>
-		public override IEnumerator OnMoveOut()
+		public override IEnumerator OnHide()
 		{
 			yield break;
 		}
@@ -144,21 +144,12 @@ namespace Mobcast.Coffee.UI
 		{
 			yield break;
 		}
-
+	
 		/// <summary>
-		/// This function is called before showing UI.
-		/// Implement this function to load resources and instantiate other prefabs.
+		/// This function is called when the MonoBehaviour will be destroyed or be pooled.
+		/// Implement this function to finalize UI.
 		/// </summary>
-		public override IEnumerator OnLoadResource()
-		{
-			yield break;
-		}
-
-		/// <summary>
-		/// This function is called after hiding UI.
-		/// Implement this function to unload resources and decrease memory usage.
-		/// </summary>
-		public override IEnumerator OnUnloadResource()
+		public override IEnumerator OnFinalize()
 		{
 			yield break;
 		}

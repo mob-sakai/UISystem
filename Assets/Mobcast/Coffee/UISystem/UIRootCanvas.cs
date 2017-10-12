@@ -135,14 +135,6 @@ namespace Mobcast.Coffee.UI
 		{
 			bool isMain = main == this;
 			
-			
-			Debug.Log("#### OnMainRootCanvasChanged");
-			Debug.Log(this.gameObject.scene.name,this);
-			Debug.Log(isMain);
-			Debug.Log(defaultCamera);
-			Debug.Log(main.canvas.renderMode);
-			Debug.Log(main.defaultCamera);
-			
 			canvas.renderMode = main.canvas.renderMode;
 			canvas.worldCamera = main.defaultCamera;
 

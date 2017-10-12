@@ -45,6 +45,12 @@ UISystem
 
 ## Release Notes
 
+### ver.0.5.0:
+
+* Changed: Simplification of some complex events.
+* Fixed: In Initialize method, StartCoroutine does not work.
+* Feature: Template prefab.
+
 ### ver.0.4.0:
 
 * Feature: 'Output directory' for UITemplateWizard.

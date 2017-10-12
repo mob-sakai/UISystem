@@ -30,7 +30,7 @@ namespace Mobcast.Coffee.UI
 		List<UIArgument> m_ScreenHistory = new List<UIArgument>();
 
 
-		public static List<UIBase> cachedObjects { get { return instance.m_CachedObjects; } }
+		public static List<UIBase> pooledObjects { get { return instance.m_CachedObjects; } }
 
 		List<UIBase> m_CachedObjects = new List<UIBase>();
 
@@ -73,9 +73,9 @@ namespace Mobcast.Coffee.UI
 		/// </summary>
 		/// <returns>The in.</returns>
 		/// <param name="ui">User interface.</param>
-		public static Coroutine MoveIn(UIBase ui)
+		public static Coroutine Show(UIBase ui)
 		{
-			return instance.StartCoroutine(CoIn(ui));
+			return instance.StartCoroutine(CoShow(ui));
 		}
 
 		/// <summary>
@@ -83,9 +83,9 @@ namespace Mobcast.Coffee.UI
 		/// </summary>
 		/// <returns>The out.</returns>
 		/// <param name="ui">User interface.</param>
-		public static Coroutine MoveOut(UIBase ui)
+		public static Coroutine Hide(UIBase ui)
 		{
-			return instance.StartCoroutine(CoOut(ui));
+			return instance.StartCoroutine(CoHide(ui));
 		}
 
 
@@ -103,7 +103,7 @@ namespace Mobcast.Coffee.UI
 		/// <returns>The dialog.</returns>
 		public static Coroutine CloseDialog()
 		{
-			return instance.StartCoroutine(CoOut(currentScreen.dialogs.LastOrDefault()));
+			return instance.StartCoroutine(CoHide(currentScreen.dialogs.LastOrDefault()));
 		}
 
 		/// <summary>
@@ -113,7 +113,7 @@ namespace Mobcast.Coffee.UI
 		/// <param name="dialog">Dialog.</param>
 		public static Coroutine CloseDialog(UIDialog dialog)
 		{
-			return instance.StartCoroutine(CoOut(dialog, false, true));
+			return instance.StartCoroutine(CoHide(dialog, false, true));
 		}
 
 		/// <summary>
@@ -128,7 +128,7 @@ namespace Mobcast.Coffee.UI
 			if (!string.IsNullOrEmpty(path))
 				arg.path = path;
 
-			return instance.StartCoroutine(CoIn(arg, typeof(UIDialog)));
+			return instance.StartCoroutine(CoShow(arg, typeof(UIDialog)));
 		}
 
 
@@ -167,12 +167,12 @@ namespace Mobcast.Coffee.UI
 			for (int i = screenHistory.Count - 1; index < i; i--)
 			{
 				//シュリンク対象でサスペンド済みの場合、アウト
-				instance.StartCoroutine(CoOut(GetCachedObject(screenHistory[i].path, true), false, true));
+				instance.StartCoroutine(CoHide(GetPooledObject(screenHistory[i].path, true), false, true));
 				screenHistory.RemoveAt(i);
 			}
 
 			arg.isBacked = true;
-			return instance.StartCoroutine(CoIn(arg, typeof(UIScreen)));
+			return instance.StartCoroutine(CoShow(arg, typeof(UIScreen)));
 		}
 
 		/// <summary>
@@ -195,24 +195,22 @@ namespace Mobcast.Coffee.UI
 
 			//レジューム可能なら、履歴チェック
 			return (enableResume ? BackScreen(path) : null)
-			?? instance.StartCoroutine(CoIn(arg, typeof(UIScreen)));
+			?? instance.StartCoroutine(CoShow(arg, typeof(UIScreen)));
 		}
 
 
 
 
 
-		static IEnumerator CoIn(UIArgument arg, System.Type type)
+		static IEnumerator CoShow(UIArgument arg, System.Type type)
 		{
-			string cond = "CoIn_" + arg.path;
+			string cond = "CoShow_" + arg.path;
 			UIRaycastBlocker.instance.AddCondition(cond);
 
-			Debug.LogWarningFormat("#### CoIn stat {0}", arg.path);
-			//			screenHistory.Select(x => x.path).LogDump();
-			//			cachedObject.Select(x => x.name).LogDump();
+			Debug.LogWarningFormat("#### CoShow stat {0}", arg.path);
 
 			// スクリーンの場合、アウト実行
-			Coroutine coOut = null;
+			Coroutine coHide = null;
 			if (typeof(UIScreen).IsAssignableFrom(type))
 			{
 				// スクリーンの場合、履歴に追加
@@ -223,13 +221,13 @@ namespace Mobcast.Coffee.UI
 
 				// アウト実行
 				// Backのばあい、サスペンドしない。
-				coOut = instance.StartCoroutine(CoOut(currentScreen, !arg.isBacked, true));
+				coHide = instance.StartCoroutine(CoHide(currentScreen, !arg.isBacked, true));
 				currentScreen = null;
 			}
 
 			//キャッシュから取得.
-			UIBase uiIn = GetCachedObject(arg.path, false);//cachedObject.FirstOrDefault(ui => ui.argument.path == arg.path);
-			if (uiIn)
+			UIBase uiShow = GetPooledObject(arg.path, false);
+			if (uiShow)
 			{
 				Debug.LogFormat("{1:D6} >>>> [UIM] Find Instance in Cache : {0}", arg.path, Time.frameCount);
 			}
@@ -242,13 +240,13 @@ namespace Mobcast.Coffee.UI
 					//スクリーンシーンのロード開始.
 					Debug.LogFormat("{1:D6} >>>> [UIM] Load Scene : {0}", arg.path, Time.frameCount);
 					yield return SceneManager.LoadSceneAsync(arg.path, LoadSceneMode.Additive);
-					uiIn = waitInitialize.Find(x => x && x.gameObject.scene.name == arg.path && type.IsInstanceOfType(x));
+					uiShow = waitInitialize.Find(x => x && x.gameObject.scene.name == arg.path && type.IsInstanceOfType(x));
 
 					//ダイアログの場合、シーンは破棄.
 					if (typeof(UIDialog).IsAssignableFrom(type))
 					{
-						uiIn.transform.SetParent(null);
-						SceneManager.MoveGameObjectToScene(uiIn.gameObject, currentScreen.gameObject.scene);
+						uiShow.transform.SetParent(null);
+						SceneManager.MoveGameObjectToScene(uiShow.gameObject, currentScreen.gameObject.scene);
 						SceneManager.UnloadSceneAsync(arg.path);
 					}
 				}
@@ -259,49 +257,49 @@ namespace Mobcast.Coffee.UI
 					var req = Resources.LoadAsync<GameObject>(arg.path);
 					yield return req;
 					var go = Object.Instantiate(req.asset, currentScreen.canvas.rootCanvas.transform) as GameObject;
-					uiIn = go.GetComponent<UIBase>();
+					uiShow = go.GetComponent<UIBase>();
 				}
 			}
 
-			uiIn.argument = arg;
+			uiShow.argument = arg;
 
 			//スクリーンの場合、カレントを変更
-			if (uiIn is UIScreen)
+			if (uiShow is UIScreen)
 			{
-				currentScreen = uiIn as UIScreen;
-				uiIn.orderTracker.ignoreParentTracker = false;
+				currentScreen = uiShow as UIScreen;
+				uiShow.orderTracker.ignoreParentTracker = false;
 
 				//TODO: List使うオーバーロードに切り替え
-				uiIn.gameObject.scene.GetRootGameObjects(s_GameObject);
+				uiShow.gameObject.scene.GetRootGameObjects(s_GameObject);
 				foreach (var go in s_GameObject)
 					go.SetActive(true);
 				s_GameObject.Clear();
 			}
-			else if (uiIn is UIDialog)
+			else if (uiShow is UIDialog)
 			{
 				//TODO: Transformのキャッシュ
 				//TODO: UIRootCanvasのキャッシュ
-				uiIn.FitByParent(currentScreen.canvas.rootCanvas.transform);
-				uiIn.cachedTransform.SetAsLastSibling();
+				uiShow.FitByParent(currentScreen.canvas.rootCanvas.transform);
+				uiShow.cachedTransform.SetAsLastSibling();
 
-				currentScreen.dialogs.Add(uiIn as UIDialog);
-				(uiIn as UIDialog).screen = currentScreen;
-				uiIn.orderTracker.ignoreParentTracker = false;
+				currentScreen.dialogs.Add(uiShow as UIDialog);
+				(uiShow as UIDialog).screen = currentScreen;
+				uiShow.orderTracker.ignoreParentTracker = false;
 			}
 
-			yield return instance.StartCoroutine(CoIn(uiIn, coOut));
+			yield return instance.StartCoroutine(CoShow(uiShow, coHide));
 			UIRaycastBlocker.instance.RemoveCondition(cond);
 		}
 
 
 
 
-		static IEnumerator CoIn(UIBase uiIn, Coroutine coOut = null)
+		static IEnumerator CoShow(UIBase uiShow, Coroutine coHide = null)
 		{
-			if (!uiIn)
+			if (!uiShow)
 				yield break;
 
-			string cond = "CoIn_Instance_" + uiIn.name;
+			string cond = "CoShow_Instance_" + uiShow.name;
 
 			if (UIRaycastBlocker.instance.ContainsCondition(cond))
 			{
@@ -309,62 +307,53 @@ namespace Mobcast.Coffee.UI
 			}
 
 			UIRaycastBlocker.instance.AddCondition(cond);
-			cachedObjects.Remove(uiIn);
+			pooledObjects.Remove(uiShow);
 
-//			string cond = "CoIn_" + uiIn.name;
+//			string cond = "CoShow_" + uiIn.name;
 //			UIRaycastBlocker.instance.Add(cond);
 
-			//スクリーンの場合、カレントを変更
-			if (uiIn is UIScreen)
-				currentScreen = uiIn as UIScreen;
+			// スクリーンの場合、カレントを変更
+			if (uiShow is UIScreen)
+				currentScreen = uiShow as UIScreen;
 
-			var uis = uiIn.GetEnumrator().ToList();
+			var uis = uiShow.GetEnumrator().ToList();
 
 			// 初期化していないUIを全て初期化
-			if (!uiIn.isInitialized)
+			if (!uiShow.isInitialized)
 			{
-				Debug.LogFormat("{1:D6} >>>> [UIM] OnInitialize : {0}", uiIn.name, Time.frameCount);
+				Debug.LogFormat("{1:D6} >>>> [UIM] OnInitialize : {0}", uiShow.name, Time.frameCount);
 				uis.ForEach(ui => ui.gameObject.SetActive(false));
 				yield return WaitUITrigger(uis.Where(ui => !ui.isInitialized), ui => ui.OnInitialize());
 				uis.ForEach(ui => ui.isInitialized = true);
 			}
 
+			// 非表示コルーチン待ち
+			if (coHide != null)
+				yield return coHide;
 
-			// ロードしていないUIを全てロード
-			if (!uiIn.isResourceLoaded)
+
+			// 表示コルーチン
+			if (!uiShow.isShow)
 			{
-				Debug.LogFormat("{1:D6} >>>> [UIM] OnLoadResource : {0}", uiIn.name, Time.frameCount);
-				yield return WaitUITrigger(uis.Where(ui => !ui.isResourceLoaded), ui => ui.OnLoadResource());
-				uis.ForEach(ui => ui.isResourceLoaded = true);
-			}
-
-			// アウト待ち
-			if (coOut != null)
-				yield return coOut;
-
-
-			//イン
-			if (!uiIn.isMovedIn)
-			{
-				Debug.LogFormat("{1:D6} >>>> [UIM] OnMoveIn : {0}", uiIn.name, Time.frameCount);
+				Debug.LogFormat("{1:D6} >>>> [UIM] OnShow : {0}", uiShow.name, Time.frameCount);
 				uis.ForEach(ui => ui.isTransiting = true);
 				uis.ForEach(ui => ui.gameObject.SetActive(true));
-				yield return WaitUITrigger(uis.Where(ui => !ui.isMovedIn), ui => ui.OnMoveIn());
+				yield return WaitUITrigger(uis.Where(ui => !ui.isShow), ui => ui.OnShow());
 				uis.ForEach(ui => ui.isTransiting = false);
-				uis.ForEach(ui => ui.isMovedIn = true);
+				uis.ForEach(ui => ui.isShow = true);
 			}
 
-			Debug.LogFormat("{1:D6} >>>> [UIM] Complete CoIn : {0}", uiIn.name, Time.frameCount);
+			Debug.LogFormat("{1:D6} >>>> [UIM] Complete CoShow : {0}", uiShow.name, Time.frameCount);
 			UIRaycastBlocker.instance.RemoveCondition(cond);
 
 		}
 
-		static IEnumerator CoOut(UIBase uiOut, bool suspend = true, bool cache = true)
+		static IEnumerator CoHide(UIBase uiHide, bool suspend = true, bool pool = true)
 		{
-			if (!uiOut)
+			if (!uiHide)
 				yield break;
 
-			string cond = "CoOut_" + uiOut.name;
+			string cond = "CoHide_" + uiHide.name;
 
 
 			if (UIRaycastBlocker.instance.ContainsCondition(cond))
@@ -376,59 +365,48 @@ namespace Mobcast.Coffee.UI
 
 
 			//アウト
-			var uis = uiOut.GetEnumrator().ToList();
-			if (uis.Any(ui => ui.isMovedIn))
+			var uis = uiHide.GetEnumrator().ToList();
+			if (uis.Any(ui => ui.isShow))
 			{
-				Debug.LogFormat("{1:D6} >>>> [UIM] OnMoveOut : {0}", uiOut.name, Time.frameCount);
+				Debug.LogFormat("{1:D6} >>>> [UIM] OnMoveOut : {0}", uiHide.name, Time.frameCount);
 				uis.ForEach(ui => ui.isTransiting = true);
-				yield return WaitUITrigger(uis.Where(ui => ui.isMovedIn), ui => ui.OnMoveOut());
+				yield return WaitUITrigger(uis.Where(ui => ui.isShow), ui => ui.OnHide());
 				uis.ForEach(ui => ui.isTransiting = false);
-				uis.ForEach(ui => ui.isMovedIn = false);
+				uis.ForEach(ui => ui.isShow = false);
 			}
 			uis.ForEach(ui => ui.gameObject.SetActive(false));
 
 
-			//			//サスペンド
+			//サスペンド
 			if (suspend)
 			{
 				uis.ForEach(SuspendObject);
-				if (uiOut.isSuspendable)
+				if (uiHide.isSuspendable)
 				{
-					Debug.LogFormat("{1:D6} [UIM] Complete CoOut by Suspend : {0}", uiOut.name, Time.frameCount);
+					Debug.LogFormat("{1:D6} [UIM] Complete CoHide by Suspend : {0}", uiHide.name, Time.frameCount);
 					UIRaycastBlocker.instance.RemoveCondition(cond);
 					yield break;
 				}
 			}
 
-			// アンロード
-			uis.ForEach(ui => ui.gameObject.SetActive(false));
-			Debug.LogFormat("{1:D6} [UIM] OnUnloadResource : {0}", uiOut.name, Time.frameCount);
-			yield return WaitUITrigger(uis.Where(ui => ui.isResourceLoaded), ui => ui.OnUnloadResource());
-			uis.ForEach(ui => ui.isResourceLoaded = false);
 			uis.ForEach(ResetObject);
 
-			// キャッシュ
-			if (cache)
-			{
-				uis.ForEach(CacheObject);
-				uis.ForEach(ui => DestroyObject(ui, false));
-
-				if (uiOut.isCacheable)
-				{
-					Debug.LogFormat("{1:D6} [UIM] Complete CoOut by Cache : {0}", uiOut.name, Time.frameCount);
-					UIRaycastBlocker.instance.RemoveCondition(cond);
-					yield break;
-				}
-			}
 
 			// 削除
-			Debug.LogFormat("{1:D6} [UIM] OnFinalize : {0}", uiOut.name, Time.frameCount);
+			Debug.LogFormat("{1:D6} [UIM] OnFinalize : {0}", uiHide.name, Time.frameCount);
 			uis.ForEach(ui => waitInitialize.Remove(ui));
-//			yield return WaitUITrigger(uis.Where(ui => ui.isInitialized), ui => ui.OnFinalize());
+			yield return WaitUITrigger(uis.Where(ui => ui.isInitialized), ui => ui.OnFinalize());
 			uis.ForEach(ui => ui.isInitialized = false);
-			uis.ForEach(ui => DestroyObject(ui, false));
+			
+			
+			// プール
+			if (pool)
+			{
+				uis.ForEach(PoolObject);
+			}
 
-			Debug.LogFormat("{1:D6} [UIM] Complete CoOut : {0}", uiOut.name, Time.frameCount);
+			Debug.LogFormat("{1:D6} [UIM] Complete CoHide : {0}, pooled : {1}", uiHide.name, Time.frameCount, pool);
+			uis.ForEach(ui => DestroyObject(ui, false));
 			UIRaycastBlocker.instance.RemoveCondition(cond);
 		}
 
@@ -437,9 +415,9 @@ namespace Mobcast.Coffee.UI
 
 		static void DestroyObject(UIBase ui, bool forceDestroy = false)
 		{
-			if (forceDestroy || !cachedObjects.Contains(ui))
+			if (forceDestroy || !pooledObjects.Contains(ui))
 			{
-				cachedObjects.Remove(ui);
+				pooledObjects.Remove(ui);
 
 				//スクリーンはシーン破棄だが、ダイアログの場合はオブジェクト破棄のみでOK
 				if (ui is UIScreen)
@@ -471,14 +449,14 @@ namespace Mobcast.Coffee.UI
 			}
 		}
 
-		static void CacheObject(UIBase ui)
+		static void PoolObject(UIBase ui)
 		{
-			if (!ui.isCacheable)
+			if (!ui.isPoolable)
 				return;
 
 			ui.argument = new UIArgument(){ path = ui.argument.path };
-			if (!cachedObjects.Contains(ui))
-				cachedObjects.Add(ui);
+			if (!pooledObjects.Contains(ui))
+				pooledObjects.Add(ui);
 			
 			//ダイアログの場合、UIRootCanvas.mainにキャッシュ.
 			if (ui is UIScreen)
@@ -502,8 +480,10 @@ namespace Mobcast.Coffee.UI
 				return;
 
 //			ui.argument = new UIArgument(){ path = ui.argument.path };
-			if (!cachedObjects.Contains(ui))
-				cachedObjects.Add(ui);
+			if (!pooledObjects.Contains(ui))
+			{
+				pooledObjects.Add(ui);
+			}
 
 			//ダイアログの場合、UIRootCanvas.mainにキャッシュ.
 			if (ui is UIScreen)
@@ -520,35 +500,44 @@ namespace Mobcast.Coffee.UI
 
 
 		/// <summary>
-		/// Gets the cached object.
+		/// Get pooled object.
 		/// </summary>
 		/// <returns>The cached object.</returns>
 		/// <param name="path">Path.</param>
 		/// <param name="onlySuspended">If set to <c>true</c> suspended.</param>
-		static UIBase GetCachedObject(string path, bool onlySuspended)
+		static UIBase GetPooledObject(string path, bool onlySuspended)
 		{
 			UIBase ret = null;
-			var index = cachedObjects.FindIndex(x => x.argument.path == path && (!onlySuspended || x.isResourceLoaded));
+			var index = pooledObjects.FindIndex(x => x.argument.path == path && (!onlySuspended || (x.isSuspendable && x.isInitialized)));
 			if (0 <= index)
 			{
-				ret = cachedObjects[index];
-				cachedObjects.RemoveAt(index);
+				ret = pooledObjects[index];
+				pooledObjects.RemoveAt(index);
 			}
+
+			if(ret)
+			{
+				Debug.LogFormat("{1:D6} #### [UIM] GetPooledObject successfuly: {0}, suspended: {2}", path, Time.frameCount,(ret.isSuspendable && ret.isInitialized));
+			}
+			else
+			{
+				Debug.LogFormat("{1:D6} #### [UIM] GetPooledObject failed, no objet pooled: {0}", path, Time.frameCount);
+			}
+			
 			return ret;
 		}
 
 
-		public static void ClearCache()
+		public static void Clear()
 		{
-//			UIBase[] uis = cachedObject.Concat(screenHistory.Select(h => h.suspendedObject)).Where(ui => ui).ToArray();
-			Debug.LogFormat("{1:D6} #### [UIM] ClearCache : {0}", cachedObjects.Count, Time.frameCount);
-			foreach (var ui in cachedObjects.ToList())
+			Debug.LogFormat("{1:D6} #### [UIM] Clear : {0}", pooledObjects.Count, Time.frameCount);
+			foreach (var ui in pooledObjects.ToList())
 			{
 				//キャッシュなしでアウト.
-				Debug.LogFormat("{1:D6} #### [UIM] ClearCache : {0}", ui.argument.path, Time.frameCount);
-				instance.StartCoroutine(CoOut(ui, false, false));
+				Debug.LogFormat("{1:D6} #### [UIM] Clear : {0}", ui.argument.path, Time.frameCount);
+				instance.StartCoroutine(CoHide(ui, false, false));
 			}
-			cachedObjects.Clear();
+			pooledObjects.Clear();
 			screenHistory.Clear();
 		}
 

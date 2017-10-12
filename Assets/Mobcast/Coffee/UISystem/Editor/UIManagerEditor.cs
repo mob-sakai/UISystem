@@ -26,14 +26,14 @@ namespace Mobcast.CoffeeEditor.UI
 			GUILayout.Label("インスタンスキャッシュ", EditorStyles.boldLabel);
 			using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
 			{
-				foreach (var ui in UIManager.cachedObjects)
+				foreach (var ui in UIManager.pooledObjects)
 				{
 					using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
 					{
 //						using (new EditorGUILayout.HorizontalScope())
 						{
 							EditorGUILayout.ObjectField(ui, typeof(UIBase), true);
-							if (ui.isResourceLoaded)
+							if (ui.isInitialized)
 								GUILayout.Label(EditorGUIUtility.FindTexture("d_preaudioloopon"), GUILayout.Width(20));
 							else
 								GUILayout.Label(EditorGUIUtility.FindTexture("d_preaudioloopoff"), GUILayout.Width(20));
@@ -69,10 +69,10 @@ namespace Mobcast.CoffeeEditor.UI
 							EditorGUILayout.ObjectField(ui, typeof(UIBase), true);
 							if(ui.isTransiting)
 								GUILayout.Label("遷移中", "sv_label_2");
-							else if(ui.isMovedIn)
+							else if(ui.isShow)
 								GUILayout.Label("表示済み", "sv_label_1");
-							else if(ui.isResourceLoaded)
-								GUILayout.Label("ロード済", "sv_label_5");
+							//else if(ui.isResourceLoaded)
+								//GUILayout.Label("ロード済", "sv_label_5");
 							else if(ui.isInitialized)
 								GUILayout.Label("初期化済", "sv_label_6");
 							else 
@@ -101,10 +101,10 @@ namespace Mobcast.CoffeeEditor.UI
 					{
 						GUILayout.Label(arg.path, EditorStyles.boldLabel);
 
-						var ui = UIManager.cachedObjects.Find(x=>x.argument == arg);
+						var ui = UIManager.pooledObjects.Find(x=>x.argument == arg);
 						if (ui)
 						{
-							if (ui.isResourceLoaded)
+							if (ui.isInitialized)
 								GUILayout.Label(EditorGUIUtility.FindTexture("d_preaudioloopon"), GUILayout.Width(20));
 							else
 								GUILayout.Label(EditorGUIUtility.FindTexture("d_preaudioloopoff"), GUILayout.Width(20));

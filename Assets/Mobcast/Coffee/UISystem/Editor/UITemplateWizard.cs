@@ -16,7 +16,10 @@ using UnityEngine.SceneManagement;
 public class UITemplateWizard : EditorWindow
 {
 	string uiName = "";
-	TextAsset templateAsset;
+	TextAsset templateScript;
+	GameObject templatePrefab;
+
+	[SerializeField] bool m_UsePrefab;
 
 	static string outputDir
 	{
@@ -83,7 +86,7 @@ public class UITemplateWizard : EditorWindow
 					s_TemplateInfoMap.Add(asset, baseType);
 			}
 		}
-		OnUINameChanged(false);
+		OnUINameChanged();
 	}
 
 	void OnGUI()
@@ -99,7 +102,7 @@ public class UITemplateWizard : EditorWindow
 			{
 				uiName = EditorGUILayout.TextField("UI Sufix for the project", uiName);
 				if (cc.changed)
-					OnUINameChanged(false);
+					OnUINameChanged();
 			}
 			OutputDirectoryField();
 			EditorGUI.indentLevel--;
@@ -141,7 +144,7 @@ public class UITemplateWizard : EditorWindow
 
 		// [Warning] Template is not selected.
 		Type baseType;
-		if (!templateAsset || !s_TemplateInfoMap.TryGetValue(templateAsset, out baseType))
+		if (!templateScript || !s_TemplateInfoMap.TryGetValue(templateScript, out baseType))
 		{
 			EditorGUILayout.HelpBox("Select a template.", MessageType.Warning);
 			return;
@@ -192,7 +195,7 @@ public class UITemplateWizard : EditorWindow
 
 		if (GUILayout.Button("Create"))
 		{
-			CreateNewUIWithTemplate(templateAsset, baseType, uiName);
+			CreateNewUIWithTemplate(templateScript, baseType, uiName, templatePrefab);
 			OnUINameChanged();
 		}
 	}
@@ -249,6 +252,14 @@ public class UITemplateWizard : EditorWindow
 		Directory.CreateDirectory(Path.GetDirectoryName(tmpPath));
 		File.WriteAllText(tmpPath, txt);
 		AssetDatabase.ImportAsset(tmpPath);
+
+		// プレハブのコピー.
+		var prefabSrc = Path.ChangeExtension( templateBase, ".prefab");
+		var prefabDst = Path.ChangeExtension( tmpPath, ".prefab");
+		if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabSrc))
+		{
+			AssetDatabase.CopyAsset(prefabSrc, prefabDst);
+		}
 	}
 
 	/// <summary>
@@ -257,12 +268,15 @@ public class UITemplateWizard : EditorWindow
 	/// <param name="newtemplate">Newtemplate.</param>
 	void OnTemplateChanged(TextAsset newtemplate)
 	{
-		templateAsset = newtemplate;
+		templateScript = newtemplate;
+		templatePrefab = null;
 
 		Type baseType;
-		if (templateAsset && s_TemplateInfoMap.TryGetValue(templateAsset, out baseType))
+		if (templateScript && s_TemplateInfoMap.TryGetValue(templateScript, out baseType))
 		{
 			uiName = baseType.Name.TrimEnd(s_GenericTypeChars);
+			Debug.Log(Path.ChangeExtension(AssetDatabase.GetAssetPath(templateScript), ".prefab"));
+			templatePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(Path.ChangeExtension(AssetDatabase.GetAssetPath(templateScript), ".prefab"));
 			OnUINameChanged();
 		}
 	}
@@ -270,7 +284,7 @@ public class UITemplateWizard : EditorWindow
 	/// <summary>
 	/// Raises the user interface name changed event.
 	/// </summary>
-	void OnUINameChanged(bool checkAssets = true)
+	void OnUINameChanged()
 	{
 		warning = "";
 		if (uiName.Length == 0)
@@ -281,7 +295,7 @@ public class UITemplateWizard : EditorWindow
 		{
 			warning = "名前にへんなもんまじってる！英数字とアンスコのみしかダメ！！！！！";
 		}
-		else if (checkAssets && AssetDatabase.FindAssets(uiName)
+		else if (AssetDatabase.FindAssets(uiName)
 			.Select(x => Path.GetFileName(AssetDatabase.GUIDToAssetPath(x)))
 			.Any(x => x == uiName + ".unity" || x == uiName + ".cs"))
 		{
@@ -302,9 +316,9 @@ public class UITemplateWizard : EditorWindow
 		// Object field.
 		Rect rField = new Rect(r.x, r.y, r.width - 16, r.height);
 		EditorGUI.BeginChangeCheck();
-		templateAsset = EditorGUI.ObjectField(rField, "Template Asset", templateAsset, typeof(TextAsset), false) as TextAsset;
+		templateScript = EditorGUI.ObjectField(rField, "Template Script", templateScript, typeof(TextAsset), false) as TextAsset;
 		if (EditorGUI.EndChangeCheck())
-			OnTemplateChanged(templateAsset);
+			OnTemplateChanged(templateScript);
 
 		// Popup to select template in project.
 		Rect rPopup = new Rect(r.x + rField.width, r.y + 4, 16, r.height - 4);
@@ -313,10 +327,17 @@ public class UITemplateWizard : EditorWindow
 			EditorGUIUtility.keyboardControl = 0;
 			GenericMenu gm = new GenericMenu();
 			foreach (var pair in s_TemplateInfoMap)
-				gm.AddItem(new GUIContent(pair.Key.name), pair.Key == templateAsset, o => OnTemplateChanged(o as TextAsset), pair.Key);
+				gm.AddItem(new GUIContent(pair.Key.name), pair.Key == templateScript, o => OnTemplateChanged(o as TextAsset), pair.Key);
 			gm.ShowAsContext();
 		}
 
+		Rect r2 = EditorGUILayout.GetControlRect();
+		float w = EditorGUIUtility.labelWidth + 14;
+		m_UsePrefab = EditorGUI.Toggle(new Rect(r2.x, r2.y, w, r2.height), "Use Prefab", m_UsePrefab);
+		using (new EditorGUI.DisabledGroupScope(true))
+		{
+			EditorGUI.ObjectField(new Rect(r2.x + w, r2.y, r2.width - w, r2.height), templatePrefab, typeof(GameObject), false);
+		}
 	}
 
 
@@ -328,7 +349,7 @@ public class UITemplateWizard : EditorWindow
 	/// <param name="template">Template.</param>
 	/// <param name="type">Type.</param>
 	/// <param name="uiName">User interface name.</param>
-	public static void CreateNewUIWithTemplate(TextAsset template, Type type, string uiName)
+	public static void CreateNewUIWithTemplate(TextAsset template, Type type, string uiName, GameObject prefab)
 	{
 		Directory.CreateDirectory(outputDir);
 
@@ -347,16 +368,15 @@ public class UITemplateWizard : EditorWindow
 
 
 			// Create a Camera.
-			new GameObject("Camera", typeof(Camera), typeof(EditorOnly)).GetComponent<Camera>();
+			new GameObject("Camera", typeof(Camera)).GetComponent<Camera>();
 
 			//すでに存在するEventSystemを無効化.
 			// Create a EventSystem object from menu.
 			List<EventSystem> evs = UnityEngine.Object.FindObjectsOfType<EventSystem>()
-				.Where(x=>x.gameObject.activeInHierarchy)
+				.Where(x => x.gameObject.activeInHierarchy)
 				.ToList();
 			evs.ForEach(x => x.gameObject.SetActive(false));
 			EditorApplication.ExecuteMenuItem("GameObject/UI/Event System");
-			Selection.activeGameObject.AddComponent<EditorOnly>();
 			evs.ForEach(x => x.gameObject.SetActive(true));
 
 			//ルートキャンバスを追加.
@@ -388,11 +408,20 @@ public class UITemplateWizard : EditorWindow
 		}
 
 
-		//UIScreenのアタッチ先となるゲームオブジェクトを生成.
+		//UIScreenのアタッチ先となるゲームオブジェクトを生成. プレハブが指定されている場合はインスタンス化.
 		// Create new GameObject for UI with required components.
-		EditorApplication.ExecuteMenuItem("GameObject/UI/Panel");
-		ComponentUtility.DestroyComponentsMatching(Selection.activeGameObject, c => !(c is Transform));
-		GameObject go = Selection.activeGameObject;
+		GameObject go;
+		if (prefab)
+		{
+			go = UnityEngine.Object.Instantiate(prefab, Selection.activeGameObject.transform, false);
+		}
+		else
+		{
+			EditorApplication.ExecuteMenuItem("GameObject/UI/Panel");
+			ComponentUtility.DestroyComponentsMatching(Selection.activeGameObject, c => !(c is Transform));
+			go = Selection.activeGameObject;
+		}
+
 
 		go.name = Path.GetFileNameWithoutExtension(uiName);
 		type.GetCustomAttributes(typeof(RequireComponent), true)

@@ -29,10 +29,10 @@ namespace Mobcast.Coffee.UI
 	public abstract class UIBase : MonoBehaviour
 	{
 		/// <summary>
-		/// Implement this property to indicate whether UI is cacheable.
+		/// Implement this property to indicate whether UI is poolable.
 		/// </summary>
 		/// <value><c>true</c> if is cacheable; otherwise, <c>false</c>.</value>
-		public abstract bool isCacheable { get; }
+		public abstract bool isPoolable { get; }
 
 		/// <summary>
 		/// Implement this property to indicate whether UI is suspendable.
@@ -44,19 +44,22 @@ namespace Mobcast.Coffee.UI
 		/// This function is called when the UI starts showing.
 		/// Implement this function to show UI with animation.
 		/// </summary>
-		public abstract IEnumerator OnMoveIn();
+		public abstract IEnumerator OnShow();
 
 		/// <summary>
 		/// This function is called when the UI starts hiding.
 		/// Implement this function to hide UI with animation.
 		/// </summary>
-		public abstract IEnumerator OnMoveOut();
+		public abstract IEnumerator OnHide();
 
-		//オブジェクト生成など、１回すれば良い処理を行う
+		//１回すれば良い処理を行う
 		//データバインディング
 		//プレハブのインスタンス化
 		//UIのエントリポイント
 		//実行される前に、UIは非アクティブになっていることに注意
+		//リソースロードもここで行う
+		//実行時ロードが必要なアセット（バナー画像、アイテム画像）の読込み
+		//UIプールからロードされた場合も、こちらがエントリポイント
 		/// <summary>
 		/// This function is called when the UI instance is being loaded, and only once during the lifetime of the instance.
 		/// Implement this function to initialize UI.
@@ -65,32 +68,13 @@ namespace Mobcast.Coffee.UI
 
 		//オブジェクト破棄など、最後に１回すれば良い処理を行う
 		//データバインディングの解除、Subscribeの解除など
-		//このトリガーの後、オブジェクトは破棄される
+		//不要な画像（バナー画像、アイテム画像等）があるばあい、こちらで破棄。
+		//このトリガーの後、オブジェクトは破棄またはプールされる
 		/// <summary>
-		/// This function is called when the UI instance is being loaded, and only once during the lifetime of the instance.
-		/// Implement this function to initialize UI.
+		/// This function is called when the MonoBehaviour will be destroyed or be pooled.
+		/// Implement this function to finalize UI.
 		/// </summary>
-//		public abstract IEnumerator OnFinalize();
-
-		//リソースロードなど
-		//APIも画面構成に必要な情報を持っているので、API待機もここで行う
-		//実行時ロードが必要なアセット（バナー画像、アイテム画像）の読込み
-		//UIキャッシュからロードされた場合は、こちらがエントリポイント
-
-		/// <summary>
-		/// This function is called before showing UI.
-		/// Implement this function to load resources and instantiate other prefabs.
-		/// </summary>
-		public abstract IEnumerator OnLoadResource();
-
-		//リソースアンロードなど
-		//UIキャッシュに不要な画像（バナー画像、アイテム画像）があるばあい、こちらで破棄。
-		/// <summary>
-		/// This function is called after hiding UI.
-		/// Implement this function to unload resources and decrease memory usage.
-		/// </summary>
-		public abstract IEnumerator OnUnloadResource();
-
+		public abstract IEnumerator OnFinalize();
 
 		/// <summary>The RectTransform attached to this GameObject.</summary>
 		public RectTransform cachedTransform
@@ -144,16 +128,10 @@ namespace Mobcast.Coffee.UI
 		/// </summary>
 		public virtual bool isInitialized { get; set; }
 
-
-		/// <summary>
-		/// Indicating whether this UI is loaded.
-		/// </summary>
-		public virtual bool isResourceLoaded { get; set; }
-
 		/// <summary>
 		/// Indicating whether this UI is shown.
 		/// </summary>
-		public virtual bool isMovedIn { get; set; }
+		public virtual bool isShow { get; set; }
 
 		protected UIBase()
 		{
@@ -185,6 +163,21 @@ namespace Mobcast.Coffee.UI
 			cachedTransform.anchoredPosition = Vector2.zero;
 			cachedTransform.pivot = Vector2.one / 2;
 		}
+		
+        new public Coroutine StartCoroutine (string methodName, object value)
+        {
+			return UIManager.instance.StartCoroutine(methodName, value);
+        }
+
+        new public Coroutine StartCoroutine (string methodName)
+        {
+			return UIManager.instance.StartCoroutine(methodName);
+        }
+
+        new public Coroutine StartCoroutine (IEnumerator routine)
+        {
+			return UIManager.instance.StartCoroutine(routine);
+        }
 
 	}
 }

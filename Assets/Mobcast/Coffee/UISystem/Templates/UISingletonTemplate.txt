@@ -19,18 +19,18 @@ public class #SCRIPTNAME# : UISingleton<#SCRIPTNAME#>
 	/// This function is called when the UI starts showing.
 	/// Implement this function to show UI with animation.
 	/// </summary>
-	public override IEnumerator OnMoveIn()
+	public override IEnumerator OnShow()
 	{
-		yield return base.OnMoveIn();
+		yield return base.OnShow();
 	}
 
 	/// <summary>
 	/// This function is called when the UI starts hiding.
 	/// Implement this function to hide UI with animation.
 	/// </summary>
-	public override IEnumerator OnMoveOut()
+	public override IEnumerator OnHide()
 	{
-		yield return base.OnMoveOut();
+		yield return base.OnHide();
 	}
 
 	/// <summary>
@@ -43,20 +43,11 @@ public class #SCRIPTNAME# : UISingleton<#SCRIPTNAME#>
 	}
 
 	/// <summary>
-	/// This function is called before showing UI.
-	/// Implement this function to load resources and instantiate other prefabs.
+	/// This function is called when the MonoBehaviour will be destroyed or be pooled.
+	/// Implement this function to finalize UI.
 	/// </summary>
-	public override IEnumerator OnLoadResource()
+	public override IEnumerator OnFinalize()
 	{
-		yield return base.OnLoadResource();
-	}
-
-	/// <summary>
-	/// This function is called after hiding UI.
-	/// Implement this function to unload resources and decrease memory usage.
-	/// </summary>
-	public override IEnumerator OnUnloadResource()
-	{
-		yield return base.OnUnloadResource();
+		yield return base.OnFinalize();
 	}
 }

@@ -109,7 +109,7 @@ namespace Mobcast.Coffee.UI
 		/// <summary>
 		/// Implement this property to indicate whether UI is cacheable.
 		/// </summary>
-		public sealed override bool isCacheable { get { return true; } }
+		public sealed override bool isPoolable { get { return true; } }
 
 		/// <summary>
 		/// Implement this property to indicate whether UI is suspendable.
@@ -121,7 +121,7 @@ namespace Mobcast.Coffee.UI
 		/// </summary>
 		public Coroutine Show()
 		{
-			return UIManager.MoveIn(this);
+			return UIManager.Show(this);
 		}
 
 		/// <summary>
@@ -129,7 +129,7 @@ namespace Mobcast.Coffee.UI
 		/// </summary>
 		public Coroutine Hide()
 		{
-			return UIManager.MoveOut(this);
+			return UIManager.Hide(this);
 		}
 	}
 }

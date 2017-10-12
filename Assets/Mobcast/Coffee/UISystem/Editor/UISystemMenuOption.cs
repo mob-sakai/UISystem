@@ -51,8 +51,6 @@ namespace Mobcast.CoffeeEditor.UI
 			rc.defaultEventSystem = UnityEngine.Object.FindObjectsOfType<EventSystem>().FirstOrDefault(x => x.gameObject.scene == rc.gameObject.scene);
 			rc.defaultCamera = Camera.allCameras.FirstOrDefault(x => x.gameObject.scene == rc.gameObject.scene);
 			rc.gameObject.SetActive(true);
-
-			CreateEditorOnly();
 		}
 
 		[MenuItem("Coffee/UI/UISetting", false, 1)]
@@ -70,31 +68,6 @@ namespace Mobcast.CoffeeEditor.UI
 				Selection.activeObject = settings;
 			}
 		}
-
-		static void CreateEditorOnly()
-		{
-			UIRootCanvas rootCanvas = Object.FindObjectOfType<UIRootCanvas>();
-			Canvas canvas = Object.FindObjectOfType<Canvas>();
-			if (rootCanvas)
-			{
-				Selection.activeGameObject = rootCanvas.gameObject;
-				EditorApplication.ExecuteMenuItem("GameObject/UI/Panel");
-			}
-			else if (canvas)
-			{
-				Selection.activeGameObject = canvas.rootCanvas.gameObject;
-				EditorApplication.ExecuteMenuItem("GameObject/UI/Panel");
-			}
-			else
-			{
-				Selection.activeGameObject = new GameObject();
-			}
-
-			ComponentUtility.DestroyComponentsMatching(Selection.activeGameObject, c => !(c is Transform));
-			Selection.activeGameObject.name = "EditorOnly";
-			Selection.activeGameObject.AddComponent<EditorOnly>();
-		}
-
 
 		[MenuItem("Coffee/UI/Create UI from Template ...", false, 20)]
 		static void CreateUIFromTemplate()
