@@ -30,11 +30,11 @@ namespace Mobcast.Coffee.UI
 		List<UIArgument> m_ScreenHistory = new List<UIArgument>();
 
 
-		public static List<UIBase> pooledObjects { get { return instance.m_CachedObjects; } }
+		public static List<UIBase> pooledObjects { get { return instance.m_PooledObjects; } }
 
-		List<UIBase> m_CachedObjects = new List<UIBase>();
+		List<UIBase> m_PooledObjects = new List<UIBase>();
 
-		static readonly List<GameObject> s_GameObject = new List<GameObject>();
+		static readonly List<GameObject> s_TempGameObjects = new List<GameObject>();
 
 		public static List<UIBase> waitInitialize = new List<UIBase>();
 
@@ -270,10 +270,10 @@ namespace Mobcast.Coffee.UI
 				uiShow.orderTracker.ignoreParentTracker = false;
 
 				//TODO: List使うオーバーロードに切り替え
-				uiShow.gameObject.scene.GetRootGameObjects(s_GameObject);
-				foreach (var go in s_GameObject)
+				uiShow.gameObject.scene.GetRootGameObjects(s_TempGameObjects);
+				foreach (var go in s_TempGameObjects)
 					go.SetActive(true);
-				s_GameObject.Clear();
+				s_TempGameObjects.Clear();
 			}
 			else if (uiShow is UIDialog)
 			{
@@ -336,6 +336,24 @@ namespace Mobcast.Coffee.UI
 			if (!uiShow.isShow)
 			{
 				Debug.LogFormat("{1:D6} >>>> [UIM] OnShow : {0}", uiShow.name, Time.frameCount);
+
+
+				if(currentScreen)
+				{
+					var uiFocus = uis[uis.Count - 1];
+					Debug.Log("FocusUI: " + uiFocus);
+					var uis2 = currentScreen.GetEnumrator().Concat(uis).ToList();
+					for (int i = 0; i < uis2.Count;i++)
+					{
+						bool focus = uis2[i] == uiFocus;
+						if (uis2[i].hasFocus != focus)
+						{
+							uis2[i].hasFocus = focus;
+							uis2[i].OnFocus(focus);
+						}
+					}
+				}
+				
 				uis.ForEach(ui => ui.isTransiting = true);
 				uis.ForEach(ui => ui.gameObject.SetActive(true));
 				yield return WaitUITrigger(uis.Where(ui => !ui.isShow), ui => ui.OnShow());
@@ -366,6 +384,17 @@ namespace Mobcast.Coffee.UI
 
 			//アウト
 			var uis = uiHide.GetEnumrator().ToList();
+			
+			for (int i = 0; i < uis.Count;i++)
+			{
+				bool focus = false;
+				if (uis[i].hasFocus != focus)
+				{
+					uis[i].hasFocus = focus;
+					uis[i].OnFocus(focus);
+				}
+			}
+			
 			if (uis.Any(ui => ui.isShow))
 			{
 				Debug.LogFormat("{1:D6} >>>> [UIM] OnMoveOut : {0}", uiHide.name, Time.frameCount);
@@ -403,6 +432,13 @@ namespace Mobcast.Coffee.UI
 			if (pool)
 			{
 				uis.ForEach(PoolObject);
+			}
+			
+			if(currentScreen)
+			{
+				var ui = currentScreen.GetEnumrator().LastOrDefault();
+				ui.hasFocus = true;
+				ui.OnFocus(true);
 			}
 
 			Debug.LogFormat("{1:D6} [UIM] Complete CoHide : {0}, pooled : {1}", uiHide.name, Time.frameCount, pool);
@@ -462,10 +498,10 @@ namespace Mobcast.Coffee.UI
 			if (ui is UIScreen)
 			{
 				//スクリーンの場合、シーンのルートオブジェクトを無効化するだけ。
-				ui.gameObject.scene.GetRootGameObjects(s_GameObject);
-				foreach (var go in s_GameObject)
+				ui.gameObject.scene.GetRootGameObjects(s_TempGameObjects);
+				foreach (var go in s_TempGameObjects)
 					go.SetActive(false);
-				s_GameObject.Clear();
+				s_TempGameObjects.Clear();
 			}
 			else
 			{
@@ -489,10 +525,10 @@ namespace Mobcast.Coffee.UI
 			if (ui is UIScreen)
 			{
 				//スクリーンの場合、シーンのルートオブジェクトを無効化するだけ。
-				ui.gameObject.scene.GetRootGameObjects(s_GameObject);
-				foreach (var go in s_GameObject)
+				ui.gameObject.scene.GetRootGameObjects(s_TempGameObjects);
+				foreach (var go in s_TempGameObjects)
 					go.SetActive(false);
-				s_GameObject.Clear();
+				s_TempGameObjects.Clear();
 			}
 		}
 

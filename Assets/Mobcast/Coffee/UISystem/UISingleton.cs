@@ -131,5 +131,12 @@ namespace Mobcast.Coffee.UI
 		{
 			return UIManager.Hide(this);
 		}
+		
+		/// <summary>
+		/// This function is called when the UI will be focus/defocus.
+		/// </summary>
+		sealed public override void OnFocus(bool focus)
+		{
+		}
 	}
 }

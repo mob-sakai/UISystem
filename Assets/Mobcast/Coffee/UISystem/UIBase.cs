@@ -39,6 +39,12 @@ namespace Mobcast.Coffee.UI
 		/// </summary>
 		/// <value><c>true</c> if is suspendable; otherwise, <c>false</c>.</value>
 		public abstract bool isSuspendable { get; }
+		
+		/// <summary>
+		/// Implement this property to indicate whether UI has focus.
+		/// </summary>
+		/// <value><c>true</c> if has focus; otherwise, <c>false</c>.</value>
+		public bool hasFocus { get; set; }
 
 		/// <summary>
 		/// This function is called when the UI starts showing.
@@ -51,6 +57,11 @@ namespace Mobcast.Coffee.UI
 		/// Implement this function to hide UI with animation.
 		/// </summary>
 		public abstract IEnumerator OnHide();
+		
+		/// <summary>
+		/// This function is called when the UI will be focus/defocus.
+		/// </summary>
+		public abstract void OnFocus(bool focus);
 
 		//１回すれば良い処理を行う
 		//データバインディング

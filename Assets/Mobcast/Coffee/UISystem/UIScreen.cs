@@ -41,6 +41,15 @@ namespace Mobcast.Coffee.UI
 					yield return ui;
 			}
 		}
+		
+		
+		/// <summary>
+		/// This function is called when the UI will be focus/defocus.
+		/// </summary>
+		public override void OnFocus(bool focus)
+		{
+			Debug.Log("<color=red>OnFocus</color> : " + this.name + ", " + focus, this);
+		}
 	}
 
 
