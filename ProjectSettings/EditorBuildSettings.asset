@@ -6,30 +6,10 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Demo/UIScreenDemoTitle.unity
+    path: Assets/Mobcast/Coffee/UISystem/Demo/UISystem_DemoMain.unity
   - enabled: 1
-    path: Assets/Demo/UIScreenDemoHome.unity
+    path: Assets/Mobcast/Coffee/UISystem/Demo/UIScreenHome_Demo.unity
   - enabled: 1
-    path: Assets/Demo/UIDialogDemoMessage.unity
+    path: Assets/Mobcast/Coffee/UISystem/Demo/UIScreenTitle_Demo.unity
   - enabled: 1
-    path: Assets/Demo/UIScreenDemoShop.unity
-  - enabled: 1
-    path: Assets/Demo/UIDialogHOGE.unity
-  - enabled: 0
-    path: Assets/UIScreenFUGAFUGA.unity
-  - enabled: 1
-    path: UIDialogTest2.unity
-  - enabled: 1
-    path: UIDialogOOPD.unity
-  - enabled: 1
-    path: UIScreenOOPChika.unity
-  - enabled: 1
-    path: UIDialogMessage.unity
-  - enabled: 1
-    path: UIScreenHome.unity
-  - enabled: 1
-    path: Assets/UIDialogFuga.unity
-  - enabled: 1
-    path: Assets/UIDialogErrors.unity
-  - enabled: 1
-    path: Assets/UIDialogErrorMessage.unity
+    path: Assets/Mobcast/Coffee/UISystem/Demo/UIDialogMessage_Demo.unity
